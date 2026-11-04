@@ -178,6 +178,14 @@
   .copy.done { color: var(--accent); border-color: var(--accent); }
   td .call { margin: 0; }
 
+  .flow { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .flow li { display: flex; align-items: center; gap: 8px; }
+  .flow .chip {
+    padding: 5px 12px; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 999px;
+  }
+  .flow li:not(:last-child)::after { content: "→"; color: var(--accent); }
+
   .quote {
     margin: 0 0 12px; padding: 12px 16px;
     background: var(--bg); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
@@ -232,16 +240,19 @@
 /* =====================================================================
    DEPARTMENTS
    One entry per navigation button, in display order.
-   - intro:   name used in the driver introduction ("...with the {intro}.")
-   - content: true  = use the shared SECTIONS below
-              false = show the "content not added yet" notice
+   - intro:     name used in the driver introduction ("...with the {intro}.")
+   - lead:      subtitle under the department title
+   - callLabel: label for the call sign line
+   - callsign:  optional default callsign (can be changed on the page)
+   - content:   which guide to show: 'patrol' (SECTIONS) or 'fire' (FIRE_SECTIONS)
    To add a department, add an object here (and its button appears).
    ===================================================================== */
+const PATROL_LEAD = 'Patrol Operations & Quick Reference Guide';
 const DEPARTMENTS = [
-  { id: 'wsp',  abbr: 'WSP',  name: 'Wisconsin State Patrol',               title: 'WISCONSIN STATE PATROL (WSP)',               intro: 'Wisconsin State Patrol',  content: true },
-  { id: 'nps',  abbr: 'NPS',  name: 'National Park Service',                title: 'NATIONAL PARK SERVICE (NPS)',                intro: 'National Park Service',   content: true },
-  { id: 'teu',  abbr: 'TEU',  name: 'Traffic Enforcement Unit',             title: 'TRAFFIC ENFORCEMENT UNIT (TEU)',             intro: 'Traffic Enforcement Unit', content: true },
-  { id: 'gvfd', abbr: 'GVFD', name: 'Greenville Volunteer Fire Department', title: 'GREENVILLE VOLUNTEER FIRE DEPARTMENT (GVFD)', intro: 'Greenville Volunteer Fire Department', content: false }
+  { id: 'wsp',  abbr: 'WSP',  name: 'Wisconsin State Patrol',               title: 'WISCONSIN STATE PATROL (WSP)',    intro: 'Wisconsin State Patrol',  lead: PATROL_LEAD, callLabel: 'Call Sign/Badge #', content: 'patrol' },
+  { id: 'nps',  abbr: 'NPS',  name: 'National Park Service',                title: 'NATIONAL PARK SERVICE (NPS)',     intro: 'National Park Service',   lead: PATROL_LEAD, callLabel: 'Call Sign/Badge #', content: 'patrol' },
+  { id: 'teu',  abbr: 'TEU',  name: 'Traffic Enforcement Unit',             title: 'TRAFFIC ENFORCEMENT UNIT (TEU)',  intro: 'Traffic Enforcement Unit', lead: PATROL_LEAD, callLabel: 'Call Sign/Badge #', content: 'patrol' },
+  { id: 'gvfd', abbr: 'GVFD', name: 'Greenville Volunteer Fire Department', title: 'GREENVILLE FIRE DEPARTMENT (GVFD)', intro: 'Greenville Volunteer Fire Department', lead: 'Fire & Rescue Operations Quick Reference Guide', callLabel: 'Call Sign', callsign: 'Fire-49', content: 'fire' }
 ];
 
 /* =====================================================================
@@ -250,6 +261,25 @@ const DEPARTMENTS = [
    {intro} is replaced with the department's intro name.
    Inline: **bold** and `code`.
    ===================================================================== */
+/* Equipment + vital signs, shared by the patrol and fire guides */
+const MEDICAL_COMMON = [
+    { t: 'sub', x: 'Available Equipment' },
+    { t: 'ul', x: [
+      'Medical gloves and mask',
+      'Gauze',
+      'Medical tape',
+      'Splint',
+      'Cervical collar',
+      'Bag Valve Mask (BVM)',
+      'Tourniquet',
+      'AED' ] },
+    { t: 'sub', x: 'Vital Signs' },
+    { t: 'table', head: ['Vital Sign', 'Normal Range', 'Roleplay Command'], copyCol: 2, rows: [
+      ['Pulse', '60–120 BPM', '-checks pulse- (60-120BPM is normal)'],
+      ['Respiratory', '12–20/min', '-checks respiratory rate- (12-20/min is normal)'],
+      ['SpO₂', '94–99%', '-checks SpO2- (94-99% is normal)'] ] },
+];
+
 const SECTIONS = [
   { id: 'rto', title: 'Radio Communications (RTO)', blocks: [
     { t: 'cols', x: [
@@ -363,21 +393,7 @@ const SECTIONS = [
   ] },
 
   { id: 'medical', title: 'Medical / BLS Quick Reference', blocks: [
-    { t: 'sub', x: 'Available Equipment' },
-    { t: 'ul', x: [
-      'Medical gloves and mask',
-      'Gauze',
-      'Medical tape',
-      'Splint',
-      'Cervical collar',
-      'Bag Valve Mask (BVM)',
-      'Tourniquet',
-      'AED' ] },
-    { t: 'sub', x: 'Vital Signs' },
-    { t: 'table', head: ['Vital Sign', 'Normal Range', 'Roleplay Command'], copyCol: 2, rows: [
-      ['Pulse', '60–120 BPM', '-checks pulse- (60-120BPM is normal)'],
-      ['Respiratory', '12–20/min', '-checks respiratory rate- (12-20/min is normal)'],
-      ['SpO₂', '94–99%', '-checks SpO2- (94-99% is normal)'] ] },
+    ...MEDICAL_COMMON,
     { t: 'sub', x: 'Medical Reminders' },
     { t: 'ul', x: [
       'Keep the scene safe.',
@@ -387,6 +403,77 @@ const SECTIONS = [
   ] }
 ];
 
+const FIRE_SECTIONS = [
+  { id: 'uniform', title: 'Uniform & Equipment', blocks: [
+    { t: 'ul', x: [
+      '**Fire Calls:** Wear the green uniform.',
+      '**MVA / Emergency Scenes:** Wear the orange uniform.',
+      'Make sure you have the required headwear before responding.' ] }
+  ] },
+
+  { id: 'fire-call', title: 'Fire Call Procedure', blocks: [
+    { t: 'sub', x: 'Quick Order' },
+    { t: 'flow', x: ['CALL', 'ARRIVE', 'GEAR', 'FIGHT', 'SEARCH', 'CLEAR'] },
+    { t: 'sub', x: 'Initial Radio Call — 10-67' },
+    { t: 'call', x: '(Callsign), responding to a 10-67 at (Location).' },
+    { t: 'sub', x: 'Arrival Radio Call — 10-23' },
+    { t: 'call', x: '(Callsign), 10-23 at the scene of the 10-67. Beginning scene assessment.' },
+    { t: 'sub', x: 'Scene Procedure' },
+    { t: 'ol', x: [
+      'Arrive and assess the scene.',
+      'Secure the area and coordinate with other responders.',
+      'Put on the required protective equipment.',
+      'Coordinate fire suppression with the responding team.',
+      'Confirm that designated search areas have been checked.',
+      'Report remaining hazards or important findings.',
+      'Confirm the scene is clear before leaving.' ] }
+  ] },
+
+  { id: 'suppression', title: 'Fire Suppression', blocks: [
+    { t: 'ul', x: [
+      'Use the appropriate roleplay equipment.',
+      'Coordinate with other firefighters.',
+      'Communicate changes in the scene.',
+      "Follow the incident commander's directions.",
+      'Return and store equipment after the call.' ] },
+    { t: 'sub', x: 'Clear Scene Radio Call' },
+    { t: 'call', x: '(Callsign), fire is Code 4. Show me back 10-8.' }
+  ] },
+
+  { id: 'medical-mva', title: 'Medical / MVA Calls', blocks: [
+    { t: 'sub', x: 'Quick Order' },
+    { t: 'flow', x: ['CALL', 'SECURE', 'CHECK', 'EXTRACT', 'TREAT', 'CLEAN'] },
+    { t: 'sub', x: 'Initial Radio Call — 10-50' },
+    { t: 'call', x: '(Callsign), responding to a 10-50 at (Location).' },
+    { t: 'sub', x: 'Arrival Procedure' },
+    { t: 'ol', x: [
+      'Announce your arrival.',
+      'Assess the scene and coordinate with other responders.',
+      'Check whether anyone needs medical assistance.',
+      'Coordinate with trained personnel if someone needs assistance leaving a vehicle or area.',
+      'Provide care within your training and roleplay responsibilities.',
+      'Coordinate with EMS when available.',
+      'Request DOT assistance when needed.',
+      'Clean up and return equipment when the scene is clear.' ] }
+  ] },
+
+  { id: 'bls', title: 'BLS Quick Reference', blocks: [
+    ...MEDICAL_COMMON,
+    { t: 'sub', x: 'Medical Reminders' },
+    { t: 'ul', x: [
+      'Keep the scene safe.',
+      'Communicate with EMS and other responders.',
+      'Only provide care within your training and roleplay responsibilities.',
+      'Return equipment after the call.' ] }
+  ] },
+
+  { id: 'final-check', title: 'Final Radio Check', blocks: [
+    { t: 'call', x: '(Callsign), scene is Code 4. Returning to service and available for calls.' }
+  ] }
+];
+
+const GUIDES = { patrol: SECTIONS, fire: FIRE_SECTIONS };
+
 /* ============================ Rendering ============================ */
 const $ = (s, r = document) => r.querySelector(s);
 
@@ -394,8 +481,8 @@ const $ = (s, r = document) => r.querySelector(s);
 const STORE = 'ps-guide-details';
 let me = { name: '', callsigns: {} };   // callsigns are stored per department id
 try { const saved = JSON.parse(localStorage.getItem(STORE) || '{}'); me.name = saved.name || ''; me.callsigns = saved.callsigns || {}; } catch (e) {}
-const callsign = () => (current && me.callsigns[current.id]) || '';
-const sub = s => s.replace(/\[Callsign\]/g, () => callsign() || '[Callsign]').replace(/\[Name\]/g, () => me.name || '[Name]');
+const callsign = () => { if (!current) return ''; const v = me.callsigns[current.id]; return v !== undefined ? v : (current.callsign || ''); };
+const sub = s => s.replace(/[\[(]Callsign[\])]/g, m => callsign() || m).replace(/\[Name\]/g, () => me.name || '[Name]');
 let current = null;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
@@ -408,6 +495,7 @@ function block(b, dept) {
     case 'ul':    return `<ul class="list">${b.x.map(i => `<li>${inline(i)}</li>`).join('')}</ul>`;
     case 'ol':    return `<ol class="list">${b.x.map(i => `<li>${inline(i)}</li>`).join('')}</ol>`;
     case 'call':  return call(b.x);
+    case 'flow':  return `<ol class="flow" aria-label="${esc(b.x.join(' → '))}">${b.x.map(w => `<li><span class="chip">${esc(w)}</span></li>`).join('')}</ol>`;
     case 'quote': return `<blockquote class="quote">${esc(sub(fill(b.x)))}</blockquote>`;
     case 'cols':  return `<div class="cols">${b.x.map(c => `<div><h4>${esc(c.h)}</h4><ul class="list">${c.ul.map(i => `<li>${inline(i)}</li>`).join('')}</ul></div>`).join('')}</div>`;
     case 'table': {
@@ -429,20 +517,21 @@ function renderNav(activeId) {
 function renderDept(d) {
   $('#dept-head').innerHTML =
     `<h2 tabindex="-1">${esc(d.title)}</h2>
-     <p class="lead">Patrol Operations &amp; Quick Reference Guide</p>
-     <div class="meta"><div><span>Department:</span> ${esc(d.name)}</div><div><span>Call Sign/Badge #:</span> <code>${esc(callsign() || '[Callsign]')}</code></div></div>`;
+     <p class="lead">${esc(d.lead)}</p>
+     <div class="meta"><div><span>Department:</span> ${esc(d.name)}</div><div><span>${esc(d.callLabel)}:</span> <code>${esc(callsign() || '[Callsign]')}</code></div></div>`;
 
-  if (!d.content) {
+  const secs = GUIDES[d.content];
+  if (!secs) {
     $('#toc').innerHTML = '';
     $('#sections').innerHTML =
       `<section class="card empty"><h3>Content not added yet</h3><p>The ${esc(d.abbr)} guide has no information yet. Add its details to this department's entry in the script and the sections will appear here automatically.</p></section>`;
     return;
   }
 
-  $('#toc').innerHTML = `<h3>On this page</h3><ul>${SECTIONS.map((s, i) =>
+  $('#toc').innerHTML = `<h3>On this page</h3><ul>${secs.map((s, i) =>
     `<li><button type="button" data-target="${s.id}">${i + 1}. ${esc(s.title)}</button></li>`).join('')}</ul>`;
 
-  $('#sections').innerHTML = SECTIONS.map((s, i) =>
+  $('#sections').innerHTML = secs.map((s, i) =>
     `<section class="card" id="${s.id}" aria-labelledby="${s.id}-h"><h3 id="${s.id}-h"><span class="num">${i + 1}.</span>${esc(s.title)}</h3>${s.blocks.map(b => block(b, d)).join('')}</section>`).join('');
 }
 
@@ -493,7 +582,7 @@ function syncInputs() {
 }
 function saveMe() {
   const cs = $('#in-callsign').value.trim();
-  if (cs) me.callsigns[current.id] = cs; else delete me.callsigns[current.id];
+  me.callsigns[current.id] = cs;   // '' is kept so a default callsign can be cleared
   me.name = $('#in-name').value.trim();
   try { localStorage.setItem(STORE, JSON.stringify(me)); } catch (e) {}
   if (current) renderDept(current);
