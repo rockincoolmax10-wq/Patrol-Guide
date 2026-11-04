@@ -216,10 +216,10 @@
 <main class="page" id="content">
   <div class="dept-head" id="dept-head"></div>
   <form class="details" id="details" aria-label="Your details" onsubmit="return false">
-    <div><label for="in-callsign">Your callsign</label><input id="in-callsign" type="text" placeholder="e.g. 4-Adam-12" autocomplete="off"></div>
+    <div><label for="in-callsign" id="lbl-callsign">Your callsign</label><input id="in-callsign" type="text" placeholder="e.g. 4-Adam-12" autocomplete="off"></div>
     <div><label for="in-name">Your name</label><input id="in-name" type="text" placeholder="e.g. Smith" autocomplete="off"></div>
-    <button type="button" class="copy" id="clear-details">Clear</button>
-    <p class="hint">Fills in [Callsign] and [Name] throughout the guide. Saved in this browser only.</p>
+    <button type="button" class="copy" id="clear-details">Clear callsign</button>
+    <p class="hint">Fills in [Callsign] and [Name] throughout the guide. Each department keeps its own callsign. Saved in this browser only.</p>
   </form>
   <div class="layout">
     <nav class="toc" id="toc" aria-label="On this page"></nav>
@@ -392,9 +392,10 @@ const $ = (s, r = document) => r.querySelector(s);
 
 /* Your details: typed on the page, saved in this browser, never in the HTML */
 const STORE = 'ps-guide-details';
-let me = { callsign: '', name: '' };
-try { Object.assign(me, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) {}
-const sub = s => s.replace(/\[Callsign\]/g, () => me.callsign || '[Callsign]').replace(/\[Name\]/g, () => me.name || '[Name]');
+let me = { name: '', callsigns: {} };   // callsigns are stored per department id
+try { const saved = JSON.parse(localStorage.getItem(STORE) || '{}'); me.name = saved.name || ''; me.callsigns = saved.callsigns || {}; } catch (e) {}
+const callsign = () => (current && me.callsigns[current.id]) || '';
+const sub = s => s.replace(/\[Callsign\]/g, () => callsign() || '[Callsign]').replace(/\[Name\]/g, () => me.name || '[Name]');
 let current = null;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
@@ -429,7 +430,7 @@ function renderDept(d) {
   $('#dept-head').innerHTML =
     `<h2 tabindex="-1">${esc(d.title)}</h2>
      <p class="lead">Patrol Operations &amp; Quick Reference Guide</p>
-     <div class="meta"><div><span>Department:</span> ${esc(d.name)}</div><div><span>Call Sign/Badge #:</span> <code>${esc(me.callsign || '[Callsign]')}</code></div></div>`;
+     <div class="meta"><div><span>Department:</span> ${esc(d.name)}</div><div><span>Call Sign/Badge #:</span> <code>${esc(callsign() || '[Callsign]')}</code></div></div>`;
 
   if (!d.content) {
     $('#toc').innerHTML = '';
@@ -449,6 +450,7 @@ function route(userInitiated) {
   const id = location.hash.slice(1);
   const d = DEPARTMENTS.find(x => x.id === id) || DEPARTMENTS[0];
   current = d;
+  syncInputs();
   renderNav(d.id);
   renderDept(d);
   document.title = `${d.abbr} | Patrol Operations & Quick Reference`;
@@ -484,10 +486,14 @@ function fallback(text, done) {
   document.body.removeChild(t);
 }
 
-$('#in-callsign').value = me.callsign;
-$('#in-name').value = me.name;
+function syncInputs() {
+  $('#lbl-callsign').textContent = `Your ${current.abbr} callsign`;
+  $('#in-callsign').value = me.callsigns[current.id] || '';
+  $('#in-name').value = me.name;
+}
 function saveMe() {
-  me.callsign = $('#in-callsign').value.trim();
+  const cs = $('#in-callsign').value.trim();
+  if (cs) me.callsigns[current.id] = cs; else delete me.callsigns[current.id];
   me.name = $('#in-name').value.trim();
   try { localStorage.setItem(STORE, JSON.stringify(me)); } catch (e) {}
   if (current) renderDept(current);
@@ -495,7 +501,7 @@ function saveMe() {
 $('#in-callsign').addEventListener('input', saveMe);
 $('#in-name').addEventListener('input', saveMe);
 $('#clear-details').addEventListener('click', () => {
-  $('#in-callsign').value = ''; $('#in-name').value = ''; saveMe();
+  $('#in-callsign').value = ''; saveMe();
 });
 
 route(false);
